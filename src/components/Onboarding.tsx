@@ -287,9 +287,17 @@ export default function Onboarding({ onAuthSuccess }: OnboardingProps) {
           const userSnap = await getDoc(userDocRef);
           if (userSnap.exists()) {
             liveProfile = userSnap.data() as UserProfile;
-            // Strict enforce role
+            // Strict enforce role or update based on login form select
             if (isAdminEmail(lowerEmail)) {
               liveProfile.role = 'coach_admin';
+            } else {
+              liveProfile.role = role;
+            }
+            // Sync with Firestore so they go to specified dashboard
+            try {
+              await setDoc(userDocRef, { ...liveProfile, role: liveProfile.role }, { merge: true });
+            } catch (dbErr) {
+              console.warn("Firestore writing error on role update:", dbErr);
             }
           } else {
             // If signed in, but profile is missing
@@ -299,7 +307,7 @@ export default function Onboarding({ onAuthSuccess }: OnboardingProps) {
               id: cred.user.uid,
               name: isAdmin ? 'Ludo Consulting Admin' : (cred.user.displayName || 'Utilisateur'),
               email: checkEmail,
-              role: isAdmin ? 'coach_admin' : 'élève',
+              role: isAdmin ? 'coach_admin' : role,
               phone: '+241 077 00 00 00',
               zone: 'Akanda'
             };
@@ -319,21 +327,14 @@ export default function Onboarding({ onAuthSuccess }: OnboardingProps) {
           } catch (logErr) {
             console.warn("Firestore error logged:", logErr);
           }
-          console.warn("Firestore permissions blocked reading user profile, estimating profile from email.", dbErr);
-          let guessedRole: UserRole = 'élève';
-          if (isAdminEmail(cred.user.email) || cred.user.email?.includes('admin')) {
-            guessedRole = 'coach_admin';
-          } else if (cred.user.email?.includes('prof') || cred.user.email?.includes('teacher')) {
-            guessedRole = 'teacher';
-          } else if (cred.user.email?.includes('parent')) {
-            guessedRole = 'parent';
-          }
+          console.warn("Firestore permissions blocked reading user profile, using chosen role from select dropdown.", dbErr);
+          const isAdmin = isAdminEmail(cred.user.email || lowerEmail);
           
           liveProfile = {
             id: cred.user.uid,
-            name: isAdminEmail(cred.user.email) ? 'Ludo Consulting Admin' : (cred.user.displayName || 'Utilisateur Gabonais'),
+            name: isAdmin ? 'Ludo Consulting Admin' : (cred.user.displayName || 'Utilisateur Gabonais'),
             email: cred.user.email || email,
-            role: guessedRole,
+            role: isAdmin ? 'coach_admin' : role,
             phone: '+241 077 00 00 00',
             zone: 'Akanda'
           };
@@ -458,70 +459,28 @@ export default function Onboarding({ onAuthSuccess }: OnboardingProps) {
               <path d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.08H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.92l2.85-2.22c-.87-2.6-2.86-4.53-5.29-4.53z" fill="#FBBC05"/>
               <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.08l3.66 2.84c.87-2.6 3.3-4.54 6.16-4.54z" fill="#EA4335"/>
             </svg>
-            <span>{isSignUp ? 'S\'enregistrer avec Google' : 'Connexion rapide avec Google'}</span>
+            <span>{isSignUp ? "S'enregistrer avec Google" : "Connexion rapide avec Google"}</span>
           </button>
 
-          {/* Fast pre-configured accounts */}
-          <div className="mt-4 p-4 rounded-xl bg-slate-950 border border-slate-800">
-            <h4 className="text-[10px] uppercase font-bold tracking-wider text-amber-500 mb-2.5 text-center flex items-center justify-center gap-1">
-              <Sparkles className="w-3 h-3 animate-pulse" /> Accès Démo de Test Rapide (Recommandé)
-            </h4>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                id="demo-eleve-btn"
-                disabled={loading}
-                onClick={() => handleQuickDemoLogin('élève')}
-                className="py-2 px-3 text-[11px] bg-slate-900 border border-slate-800 hover:border-amber-500 hover:bg-slate-850 text-slate-200 rounded-lg flex flex-col items-center gap-0.5 transition-all text-center cursor-pointer font-sans"
-              >
-                <span className="font-semibold text-amber-500">🎓 Rôle Élève</span>
-                <span className="text-[9px] text-slate-400">Marc-Aurel</span>
-              </button>
-              <button
-                type="button"
-                id="demo-parent-btn"
-                disabled={loading}
-                onClick={() => handleQuickDemoLogin('parent')}
-                className="py-2 px-3 text-[11px] bg-slate-900 border border-slate-800 hover:border-amber-500 hover:bg-slate-850 text-slate-200 rounded-lg flex flex-col items-center gap-0.5 transition-all text-center cursor-pointer font-sans"
-              >
-                <span className="font-semibold text-blue-400">👤 Rôle Parent</span>
-                <span className="text-[9px] text-slate-400">Mme Bignoumba</span>
-              </button>
-              <button
-                type="button"
-                id="demo-prof-btn"
-                disabled={loading}
-                onClick={() => handleQuickDemoLogin('teacher')}
-                className="py-2 px-3 text-[11px] bg-slate-900 border border-slate-800 hover:border-amber-500 hover:bg-slate-850 text-slate-200 rounded-lg flex flex-col items-center gap-0.5 transition-all text-center cursor-pointer font-sans"
-              >
-                <span className="font-semibold text-emerald-400">👨‍🏫 Rôle Enseignant</span>
-                <span className="text-[9px] text-slate-400">M. Roger Ondo</span>
-              </button>
-              <button
-                type="button"
-                id="demo-admin-btn"
-                disabled={loading}
-                onClick={() => handleQuickDemoLogin('coach_admin')}
-                className="py-2 px-3 text-[11px] bg-slate-900 border border-slate-800 hover:border-amber-500 hover:bg-slate-850 text-slate-200 rounded-lg flex flex-col items-center gap-0.5 transition-all text-center cursor-pointer font-sans"
-              >
-                <span className="font-semibold text-purple-400">🛡 Coordinateur LDS</span>
-                <span className="text-[9px] text-slate-400">Administration</span>
-              </button>
-            </div>
-            <p className="text-[9px] text-slate-500 mt-2 text-center">
-              Passe outre les restrictions de popups iFrame de prévisualisation.
-            </p>
-          </div>
-
-          <div className="flex items-center my-5">
-            <div className="flex-1 h-px bg-slate-800"></div>
-            <span className="px-3 text-[10px] text-slate-500 uppercase tracking-widest font-bold">Ou par e-mail</span>
-            <div className="flex-1 h-px bg-slate-800"></div>
-          </div>
-
           {/* Credentials form */}
-          <form onSubmit={handleEmailAuth} className="space-y-4">
+          <form onSubmit={handleEmailAuth} className="space-y-4 mt-6">
             
+            {/* Always visible Role Selection Dropdown */}
+            <div>
+              <label className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Espace de Travail / Votre Rôle d&apos;Élite</label>
+              <select
+                id="auth-role-input"
+                value={role}
+                onChange={(e) => setRole(e.target.value as UserRole)}
+                className="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 font-bold focus:outline-none focus:border-amber-500 transition-all font-sans"
+              >
+                <option value="élève">🎓 Je suis Élève (Sujets, Quiz &amp; Tuteur)</option>
+                <option value="parent">👤 Je suis Parent (Suivi &amp; Règlements)</option>
+                <option value="teacher">👨‍🏫 Je suis Professeur (Répétiteur ENS &amp; Trésorerie)</option>
+                <option value="coach_admin">🛡 Je suis Coordinateur Pôle LDS (Administration)</option>
+              </select>
+            </div>
+
             {isSignUp && (
               <>
                 <div>
@@ -542,21 +501,6 @@ export default function Onboarding({ onAuthSuccess }: OnboardingProps) {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Que cherchez-vous ?</label>
-                    <select
-                      id="signup-role-input"
-                      value={role}
-                      onChange={(e) => setRole(e.target.value as UserRole)}
-                      className="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-amber-500 transition-all font-sans"
-                    >
-                      <option value="élève">Je suis Élève (Sujets &amp; Tuteur)</option>
-                      <option value="parent">Je suis Parent (Suivi &amp; Paiement)</option>
-                      <option value="teacher">Je suis Professeur (Répétiteur ENS)</option>
-                      <option value="coach_admin">Je suis Membre du Pôle LDS</option>
-                    </select>
-                  </div>
-
-                  <div>
                     <label className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">N_ Téléphone Gabon</label>
                     <div className="relative">
                       <Phone className="absolute left-3 top-3 w-4 h-4 text-slate-500" />
@@ -571,24 +515,24 @@ export default function Onboarding({ onAuthSuccess }: OnboardingProps) {
                       />
                     </div>
                   </div>
-                </div>
 
-                <div>
-                  <label className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Zone de résidence</label>
-                  <select
-                    id="signup-zone-input"
-                    value={zone}
-                    onChange={(e) => setZone(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-amber-500 transition-all font-sans"
-                  >
-                    <option value="Akanda">Akanda</option>
-                    <option value="STFO">STFO / Soduco</option>
-                    <option value="Libreville Centre">Libreville Centre</option>
-                    <option value="Owendo">Owendo</option>
-                    <option value="Port-Gentil">Port-Gentil</option>
-                    <option value="Franceville">Franceville</option>
-                    <option value="Moanda">Moanda</option>
-                  </select>
+                  <div>
+                    <label className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Zone de résidence</label>
+                    <select
+                      id="signup-zone-input"
+                      value={zone}
+                      onChange={(e) => setZone(e.target.value)}
+                      className="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-amber-500 transition-all font-sans"
+                    >
+                      <option value="Akanda">Akanda</option>
+                      <option value="STFO">STFO / Soduco</option>
+                      <option value="Libreville Centre">Libreville Centre</option>
+                      <option value="Owendo">Owendo</option>
+                      <option value="Port-Gentil">Port-Gentil</option>
+                      <option value="Franceville">Franceville</option>
+                      <option value="Moanda">Moanda</option>
+                    </select>
+                  </div>
                 </div>
               </>
             )}
