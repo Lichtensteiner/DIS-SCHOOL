@@ -1,0 +1,164 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with role details and personal parameters",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "The unique user identifier matching their firebase auth UID" },
+        "name": { "type": "string", "description": "Full display name of the user" },
+        "email": { "type": "string", "format": "email", "description": "User email address" },
+        "role": { "type": "string", "enum": ["parent", "élève", "teacher", "coach_admin"], "description": "System access level" },
+        "phone": { "type": "string", "description": "Gabon operator phone number (+241)" },
+        "zone": { "type": "string", "description": "Local city region in Gabon e.g. Akanda, STFO, Libreville" }
+      },
+      "required": ["id", "name", "email", "role"]
+    },
+    "TeacherProfile": {
+      "title": "TeacherProfile",
+      "description": "Profile detail for certified teachers listed in the school marketplace",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "The unique teacher identifier" },
+        "name": { "type": "string", "description": "Teacher display name" },
+        "subjects": { "type": "array", "description": "Pedagogical subjects offered by the teacher" },
+        "diplomaUrl": { "type": "string", "description": "URL to the ENS diploma validation document" },
+        "diplomaName": { "type": "string", "description": "Diplomas filename verification label" },
+        "verified": { "type": "boolean", "description": "Approved by Pôle Pédagogique LDS with golden badge" },
+        "rating": { "type": "number", "description": "Average review rating" },
+        "pricePerSession": { "type": "number", "description": "Price per 1 hour support in FCFA" },
+        "zone": { "type": "string", "description": "Teacher station region" },
+        "photoUrl": { "type": "string", "description": "Professional avatar image URL" },
+        "bio": { "type": "string", "description": "Pedagogical biography and experience details" },
+        "email": { "type": "string", "format": "email", "description": "Teacher email contact" },
+        "phone": { "type": "string", "description": "Public phone number" },
+        "savedWallet": { "type": "number", "description": "Active earned cash in Gabon FCFA" }
+      },
+      "required": ["id", "name", "subjects", "verified", "pricePerSession", "email"]
+    },
+    "LessonHomework": {
+      "title": "LessonHomework",
+      "description": "Homework and interactive evaluations",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique lesson homework identifier" },
+        "title": { "type": "string", "description": "Homework task assignment title" },
+        "type": { "type": "string", "enum": ["Quiz IA", "Devoir", "Explication"] },
+        "studentId": { "type": "string", "description": "Target student UID" },
+        "studentName": { "type": "string", "description": "Target student name" },
+        "teacherId": { "type": "string", "description": "Assignor teacher UID or 'IA'" },
+        "teacherName": { "type": "string", "description": "Assignor teacher name" },
+        "subject": { "type": "string", "description": "Educational topic" },
+        "aiScore": { "type": "number", "description": "Score out of 20" },
+        "recommendations": { "type": "string", "description": "Written feedback context" },
+        "status": { "type": "string", "enum": ["Assigné", "Soumis", "Corrigé"] },
+        "questions": { "type": "array", "description": "Multiple items list for Quiz elements" },
+        "studentAnswers": { "type": "array", "description": "Answers submitted" },
+        "submissionText": { "type": "string", "description": "Devoir text or transcription" },
+        "feedbackText": { "type": "string", "description": "Final review text" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "title", "type", "studentId", "teacherId", "status"]
+    },
+    "VideoSession": {
+      "title": "VideoSession",
+      "description": "Interactive live video session",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Live session unique identifier" },
+        "title": { "type": "string", "description": "Name or topic of live discussion block" },
+        "startTime": { "type": "string", "format": "date-time" },
+        "durationMinutes": { "type": "number" },
+        "studentId": { "type": "string" },
+        "studentName": { "type": "string" },
+        "teacherId": { "type": "string" },
+        "teacherName": { "type": "string" },
+        "recordingUrl": { "type": "string" },
+        "status": { "type": "string", "enum": ["À venir", "En cours", "Terminé"] }
+      },
+      "required": ["id", "title", "startTime", "durationMinutes", "studentId", "teacherId", "status"]
+    },
+    "EscrowTransaction": {
+      "title": "EscrowTransaction",
+      "description": "Safe Escrow transaction via Airtel/Moov money",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "amount": { "type": "number" },
+        "type": { "type": "string", "enum": ["Airtel Money", "Moov Money"] },
+        "status": { "type": "string", "enum": ["Escrow", "Released", "Refunded"] },
+        "parentId": { "type": "string" },
+        "parentName": { "type": "string" },
+        "teacherId": { "type": "string" },
+        "teacherName": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "serviceDescription": { "type": "string" }
+      },
+      "required": ["id", "amount", "type", "status", "parentId", "teacherId", "phoneNumber", "date"]
+    },
+    "IA_Alert": {
+      "title": "IA_Alert",
+      "description": "Safety and low score alerts automatically flagged by Gemini",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "studentId": { "type": "string" },
+        "studentName": { "type": "string" },
+        "type": { "type": "string", "enum": ["Langage Inapproprié", "Alerte Décrochage", "Faible Score"] },
+        "message": { "type": "string" },
+        "severity": { "type": "string", "enum": ["low", "medium", "high"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["non_resolu", "resolu"] }
+      },
+      "required": ["id", "studentId", "type", "message", "severity", "status"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Instant messaging for parents and teachers",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "senderRole": { "type": "string" },
+        "recipientId": { "type": "string" },
+        "text": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "audioUrl": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "senderId", "senderName", "senderRole", "recipientId", "text", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User roles and registrations"
+    },
+    "/teachers/{teacherId}": {
+      "schema": "TeacherProfile",
+      "description": "Répétiteurs profiles searchable on the app"
+    },
+    "/lessons/{lessonId}": {
+      "schema": "LessonHomework",
+      "description": "Assessments, homeworks and homework completions"
+    },
+    "/sessions/{sessionId}": {
+      "schema": "VideoSession",
+      "description": "Live classes lists and states"
+    },
+    "/transactions/{transactionId}": {
+      "schema": "EscrowTransaction",
+      "description": "Escrow contracts for mobile money validation"
+    },
+    "/alerts/{alertId}": {
+      "schema": "IA_Alert",
+      "description": "Support logs and low score alerts from tuteur IA"
+    },
+    "/messages/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "Chats and parent group discussions"
+    }
+  }
+}

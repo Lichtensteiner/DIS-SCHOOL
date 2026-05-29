@@ -1,0 +1,6 @@
+{
+  "name": "DIS'SCHOOL Gabon",
+  "description": "Super-App pédagogique gabonaise avec tuteur IA 24h/24, répétiteurs certifiés, paiements sécurisés Airtel/Moov Money et classes virtuelles.",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

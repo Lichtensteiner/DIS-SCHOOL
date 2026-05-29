@@ -1,0 +1,99 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Catch-all safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && (request.auth.token.email_verified == true || request.auth.token.firebase.sign_in_provider != null);
+    }
+
+    // Match /users/{userId}
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      
+      allow create: if isSignedIn() && request.auth.uid == userId
+        && incoming().id == userId
+        && incoming().email is string && incoming().email.size() <= 128
+        && incoming().name is string && incoming().name.size() <= 128
+        && incoming().role in ['parent', 'élève', 'teacher', 'coach_admin'];
+        
+      allow update: if isSignedIn() && request.auth.uid == userId
+        && incoming().id == userId
+        && incoming().role == existing().role; // Prevents self role escalation
+    }
+
+    // Match /teachers/{teacherId}
+    match /teachers/{teacherId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && (
+        request.auth.uid == teacherId
+        || teacherId.startsWith('teacher-')
+        || (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'coach_admin')
+      );
+      allow update: if isSignedIn() && (
+        (request.auth.uid == teacherId && incoming().verified == existing().verified && incoming().savedWallet == existing().savedWallet)
+        || (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'coach_admin')
+      );
+    }
+
+    // Match /lessons/{lessonId}
+    match /lessons/{lessonId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+    }
+
+    // Match /sessions/{sessionId}
+    match /sessions/{sessionId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+    }
+
+    // Match /transactions/{transactionId}
+    match /transactions/{transactionId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+    }
+
+    // Match /alerts/{alertId}
+    match /alerts/{alertId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+    }
+
+    // Match /messages/{messageId}
+    match /messages/{messageId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && incoming().senderId == request.auth.uid;
+    }
+
+  }
+}
